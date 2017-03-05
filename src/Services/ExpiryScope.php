@@ -46,7 +46,7 @@ class ExpiryScope implements Scope
      * @param  \Illuminate\Database\Eloquent\Builder  $builder
      * @return string
      */
-    protected function getDeletedAtColumn(Builder $builder)
+    protected function getExpiredAtColumn(Builder $builder)
     {
         if (count($builder->getQuery()->joins) > 0) {
             return $builder->getModel()->getQualifiedExpiredAtColumn();
@@ -74,16 +74,16 @@ class ExpiryScope implements Scope
      * @param  \Illuminate\Database\Eloquent\Builder  $builder
      * @return void
      */
-    protected function addWithoutTrashed(Builder $builder)
+    protected function addWithoutExpired(Builder $builder)
     {
         $builder->macro('withoutExpired', function (Builder $builder) {
             $model = $builder->getModel();
 
-            $builder->withoutGlobalScope($this)->whereNull(
+	        $builder->withoutGlobalScope($this)->whereNull(
                 $model->getQualifiedExpiredAtColumn()
             );
 
-            return $builder;
+	        return $builder;
         });
     }
 

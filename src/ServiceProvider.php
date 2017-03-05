@@ -3,6 +3,7 @@
 namespace Yarob\LaravelExpirable;
 
 use Illuminate\Support\ServiceProvider as Provider;
+use Yarob\LaravelExpirable\Services\ExpiryScope;
 
 class ServiceProvider extends Provider
 {
@@ -21,7 +22,7 @@ class ServiceProvider extends Provider
 	 */
 	public function boot()
 	{
-		$this->publishes([ __DIR__ . '/../resources/config/expirable.php' => config_path('expirable.php')], 'config');
+		$this->publishes([ __DIR__ . '/resources/config/expirable.php' => config_path('expirable.php')], 'config');
 	}
 
 	/**
@@ -31,10 +32,10 @@ class ServiceProvider extends Provider
 	 */
 	public function register()
 	{
-		$this->mergeConfigFrom(__DIR__ . '/../resources/config/expirable.php', 'expirable');
+		$this->mergeConfigFrom(__DIR__ . '/resources/config/expirable.php', 'expirable');
 
 		$this->app->singleton(Expirable::class, function ($app) {
-			//return new HasSettingsObserver(new ModelSettingsService(), $app['events']);
+
 		});
 	}
 }

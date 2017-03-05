@@ -2,6 +2,7 @@
 
 namespace Yarob\LaravelExpirable;
 
+use Carbon\Carbon;
 use Yarob\LaravelExpirable\Services\ExpiryScope;
 
 /**
@@ -23,7 +24,7 @@ trait Expirable
 	 *
 	 * @return void
 	 */
-	public static function bootExpiry()
+	public static function bootExpirable()
 	{
 		static::addGlobalScope(new ExpiryScope);
 	}
@@ -86,12 +87,14 @@ trait Expirable
 			return false;
 		}
 
-		$this->{$this->getExpiredAtColumn()} = null;
+		$softExpiryAllowance = $this->getConfiguration()['soft_expiry_allowance'];
 
-		// Once we have saved the model, we will fire the "restored" event so this
+		$this->{$this->getExpiredAtColumn()} = Carbon::now()->addSeconds($softExpiryAllowance);
+
+		// Once we have saved the model, we will fire the "restoredSoftExpired" event so this
 		// developer will do anything they need to after a restore operation is
 		// totally finished. Then we will return the result of the save call.
-		$this->exists = true;
+		// $this->exists = true;
 
 		$result = $this->save();
 
@@ -107,11 +110,13 @@ trait Expirable
 	 */
 	public function isSoftExpired()
 	{
-		return ! is_null($this->{$this->getExpiredAtColumn()});
+		return ( !is_null($this->{$this->getExpiredAtColumn()})
+			and ($this->{$this->getExpiredAtColumn()} < Carbon::now())
+		);
 	}
 
 	/**
-	 * Register a restoring model event with the dispatcher.
+	 * Register a expiring model event with the dispatcher.
 	 *
 	 * @param  \Closure|string  $callback
 	 * @return void
@@ -122,7 +127,7 @@ trait Expirable
 	}
 
 	/**
-	 * Register a restored model event with the dispatcher.
+	 * Register a expired model event with the dispatcher.
 	 *
 	 * @param  \Closure|string  $callback
 	 * @return void
@@ -160,5 +165,21 @@ trait Expirable
 	public function getQualifiedExpiredAtColumn()
 	{
 		return $this->getTable().'.'.$this->getExpiredAtColumn();
+	}
+
+	/**
+	 * Get Model settings configuration for the current model,
+	 *
+	 * @return array
+	 */
+	private function getConfiguration()
+	{
+		static $defaultConfig = null;
+
+		if ($defaultConfig === null) {
+			$defaultConfig = app('config')->get('expirable');
+		}
+
+		return $defaultConfig[class_basename($this)];
 	}
 }
