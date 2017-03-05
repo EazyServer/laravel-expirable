@@ -1,0 +1,18 @@
+{
+    "name": "yarob/laravel-expirable",
+    "description": "Laravel 5.0+ package to add expirable trait to eloquent models",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Yarob Al-Taay",
+            "email": "yarob83@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Yarob\\LaravelExpirable\\": "src"
+        }
+    }
+}
