@@ -3,11 +3,10 @@
 return [
 
 	/**
-	 * This the array of settings keys acceptable per Model.
-	 * You can add as many keys as you want to each Model.
+	 * Revival Time in seconds used to extend life in expired models
 	 */
 
 	'User' => [
-		'soft_expiry_allowance' => 24*60*60,
+		'revival_time' => 24*60*60,
 	]
 ];

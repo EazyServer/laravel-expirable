@@ -12,12 +12,6 @@ use Yarob\LaravelExpirable\Services\ExpiryScope;
  */
 trait Expirable
 {
-	/**
-	 * Indicates if the model is currently force deleting expired Models.
-	 *
-	 * @var bool
-	 */
-	protected $forceExpiring = false;
 
 	/**
 	 * Boot the soft deleting trait for a model.
@@ -30,89 +24,62 @@ trait Expirable
 	}
 
 	/**
-	 * Force a hard delete on a soft deleted model.
+	 * Revive an expired model instance.
+	 *
+	 * @param null $revivalTime
 	 *
 	 * @return bool|null
 	 */
-	public function forceExpiry()
+	public function reviveExpired($revivalTime = null )
 	{
-		$this->forceExpiring = true;
+		if($this->expire_at < Carbon::now())
+		{
+			if ($this->fireModelEvent('revivingExpiry') === false) {
+				return false;
+			}
 
-		$deleted = $this->delete();
+			$revivalTime = $revivalTime ? $revivalTime : $this->getConfiguration()['revival_time'];
 
-		$this->forceExpiring = false;
+			if(!empty($revivalTime))
+			{
+				$this->{$this->getExpiredAtColumn()} = Carbon::now()->addSeconds($revivalTime);
 
-		return $deleted;
-	}
+				$result = $this->save();
 
-	/**
-	 * Perform the actual delete query on this model instance.
-	 *
-	 * @return mixed
-	 */
-	protected function performExpiryOnModel()
-	{
-		if ($this->forceExpiring) {
-			return $this->newQueryWithoutScopes()->where($this->getKeyName(), $this->getKey())->forceDelete();
+				$this->fireModelEvent('revivedExpiry', false);
+
+				return $result;
+			}
 		}
-
-		return $this->runSoftExpiry();
+		return false;
 	}
 
 	/**
-	 * Perform the actual delete query on this model instance.
+	 * return number of seconds left in model's life
 	 *
-	 * @return void
+	 * @return int/bool
 	 */
-	protected function runSoftExpiry()
+	public function timeToLive()
 	{
-		$query = $this->newQueryWithoutScopes()->where($this->getKeyName(), $this->getKey());
-
-		$this->{$this->getExpiredAtColumn()} = $time = $this->freshTimestamp();
-
-		$query->update([$this->getExpiredAtColumn() => $this->fromDateTime($time)]);
-	}
-
-	/**
-	 * Restore a soft-expired model instance.
-	 *
-	 * @return bool|null
-	 */
-	public function restoreSoftExpired()
-	{
-		// If the restoring event does not return false, we will proceed with this
-		// restore operation. Otherwise, we bail out so the developer will stop
-		// the restore totally. We will clear the deleted timestamp and save.
-		if ($this->fireModelEvent('restoringSoftExpired') === false) {
-			return false;
+		if(is_object($this->expire_at))
+		{
+			return -1 * $this->expire_at->diffInSeconds(Carbon::now(), false);
 		}
-
-		$softExpiryAllowance = $this->getConfiguration()['soft_expiry_allowance'];
-
-		$this->{$this->getExpiredAtColumn()} = Carbon::now()->addSeconds($softExpiryAllowance);
-
-		// Once we have saved the model, we will fire the "restoredSoftExpired" event so this
-		// developer will do anything they need to after a restore operation is
-		// totally finished. Then we will return the result of the save call.
-		// $this->exists = true;
-
-		$result = $this->save();
-
-		$this->fireModelEvent('restoredSoftExpired', false);
-
-		return $result;
+		return false;
 	}
 
 	/**
-	 * Determine if the model instance has been soft-expired.
+	 * check if model is expired
 	 *
 	 * @return bool
 	 */
-	public function isSoftExpired()
+	public function hasExpired()
 	{
-		return ( !is_null($this->{$this->getExpiredAtColumn()})
-			and ($this->{$this->getExpiredAtColumn()} < Carbon::now())
-		);
+		if(is_object($this->expire_at))
+		{
+			return ( $this->expire_at < Carbon::now() );
+		}
+		return false;
 	}
 
 	/**
@@ -137,15 +104,6 @@ trait Expirable
 		static::registerModelEvent('expired', $callback);
 	}
 
-	/**
-	 * Determine if the model is currently force deleting.
-	 *
-	 * @return bool
-	 */
-	public function isForceExpiring()
-	{
-		return $this->forceExpiring;
-	}
 
 	/**
 	 * Get the name of the "deleted at" column.
@@ -154,7 +112,7 @@ trait Expirable
 	 */
 	public function getExpiredAtColumn()
 	{
-		return defined('static::EXPIRED_AT') ? static::EXPIRED_AT : 'expired_at';
+		return defined('static::EXPIRE_AT') ? static::EXPIRE_AT : 'expire_at';
 	}
 
 	/**

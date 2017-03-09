@@ -2,6 +2,7 @@
 
 namespace Yarob\LaravelExpirable\Services;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
@@ -13,7 +14,7 @@ class ExpiryScope implements Scope
      *
      * @var array
      */
-    protected $extensions = ['WithExpired', 'WithoutExpired', 'OnlyExpired'];
+    protected $extensions = ['WithHasExpiry', 'WithoutHasExpiry', 'OnlyHasExpiry'];
 
     /**
      * Apply the scope to a given Eloquent query builder.
@@ -24,7 +25,8 @@ class ExpiryScope implements Scope
      */
     public function apply(Builder $builder, Model $model)
     {
-        $builder->whereNull($model->getQualifiedExpiredAtColumn());
+	    $builder->where( $model->getQualifiedExpiredAtColumn(), '>' , Carbon::now() )
+	    ->orWhereNull( $model->getQualifiedExpiredAtColumn() );
     }
 
     /**
@@ -56,27 +58,27 @@ class ExpiryScope implements Scope
     }
 
     /**
-     * Add the with-trashed extension to the builder.
+     * Add the withHasExpiry extension to the builder.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $builder
      * @return void
      */
-    protected function addWithExpired(Builder $builder)
+    protected function addWithHasExpiry(Builder $builder)
     {
-        $builder->macro('withExpired', function (Builder $builder) {
+        $builder->macro('withHasExpiry', function (Builder $builder) {
             return $builder->withoutGlobalScope($this);
         });
     }
 
     /**
-     * Add the without-trashed extension to the builder.
+     * Add the without-HasExpiry extension to the builder.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $builder
      * @return void
      */
-    protected function addWithoutExpired(Builder $builder)
+    protected function addWithoutHasExpiry(Builder $builder)
     {
-        $builder->macro('withoutExpired', function (Builder $builder) {
+        $builder->macro('withoutHasExpiry', function (Builder $builder) {
             $model = $builder->getModel();
 
 	        $builder->withoutGlobalScope($this)->whereNull(
@@ -88,14 +90,14 @@ class ExpiryScope implements Scope
     }
 
     /**
-     * Add the only-trashed extension to the builder.
+     * Add the only-HasExpiry extension to the builder.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $builder
      * @return void
      */
-    protected function addOnlyExpired(Builder $builder)
+    protected function addOnlyHasExpiry(Builder $builder)
     {
-        $builder->macro('onlyExpired', function (Builder $builder) {
+        $builder->macro('onlyHasExpiry', function (Builder $builder) {
             $model = $builder->getModel();
 
             $builder->withoutGlobalScope($this)->whereNotNull(
