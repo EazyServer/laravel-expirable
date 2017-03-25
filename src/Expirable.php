@@ -34,10 +34,6 @@ trait Expirable
 	{
 		if($this->expire_at < Carbon::now())
 		{
-			if ($this->fireModelEvent('revivingExpiry') === false) {
-				return false;
-			}
-
 			$revivalTime = $revivalTime ? $revivalTime : $this->getConfiguration()['revival_time'];
 
 			if(!empty($revivalTime))
@@ -45,8 +41,6 @@ trait Expirable
 				$this->{$this->getExpiredAtColumn()} = Carbon::now()->addSeconds($revivalTime);
 
 				$result = $this->save();
-
-				$this->fireModelEvent('revivedExpiry', false);
 
 				return $result;
 			}
@@ -81,29 +75,6 @@ trait Expirable
 		}
 		return false;
 	}
-
-	/**
-	 * Register a expiring model event with the dispatcher.
-	 *
-	 * @param  \Closure|string  $callback
-	 * @return void
-	 */
-	public static function expiring($callback)
-	{
-		static::registerModelEvent('expiring', $callback);
-	}
-
-	/**
-	 * Register a expired model event with the dispatcher.
-	 *
-	 * @param  \Closure|string  $callback
-	 * @return void
-	 */
-	public static function expired($callback)
-	{
-		static::registerModelEvent('expired', $callback);
-	}
-
 
 	/**
 	 * Get the name of the "deleted at" column.

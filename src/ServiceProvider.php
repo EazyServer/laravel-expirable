@@ -16,7 +16,7 @@ class ServiceProvider extends Provider
 	protected $defer = false;
 
 	/**
-	 * Bootstrap the application events.
+	 * Bootstrap the package.
 	 *
 	 * @return void
 	 */
